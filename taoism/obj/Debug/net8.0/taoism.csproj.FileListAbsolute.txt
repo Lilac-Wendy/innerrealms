@@ -229,3 +229,4 @@ C:\Users\wesle\OneDrive\Documentos\My Games\Terraria\tModLoader\ModSources\taois
 C:\Users\wesle\OneDrive\Documentos\My Games\Terraria\tModLoader\ModSources\taoism\obj\Debug\net8.0\refint\taoism.dll
 C:\Users\wesle\OneDrive\Documentos\My Games\Terraria\tModLoader\ModSources\taoism\obj\Debug\net8.0\taoism.pdb
 C:\Users\wesle\OneDrive\Documentos\My Games\Terraria\tModLoader\ModSources\taoism\obj\Debug\net8.0\ref\taoism.dll
+C:\Users\wesle\OneDrive\Documentos\My Games\Terraria\tModLoader\ModSources\taoism\obj\Debug\net8.0\taoism.sourcelink.json

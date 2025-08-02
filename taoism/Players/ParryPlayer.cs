@@ -1,5 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using Taoism.UI;
+using taoism.Projectiles;
 using Terraria;
 using Terraria.ModLoader;
 
@@ -7,15 +7,27 @@ namespace Taoism.Players
 {
     public class ParryPlayer : ModPlayer
     {
+        private ParryMechanics parryMechanics = new ParryMechanics();
+
         public override void OnHitNPC(NPC target, NPC.HitInfo hit, int damageDone)
         {
-            // Only update for the local player
-            if (Main.myPlayer == Player.whoAmI)
-            {
-                // Get the UI system and update the range
-                ModContent.GetInstance<ParryUISystem>().UpdateParryRange(target);
-            }
+            if (Main.myPlayer != Player.whoAmI)
+                return;
+
+            var uiSystem = ModContent.GetInstance<ParryUiSystem>();
+            uiSystem.UpdateParryRange(target);
+
+            Vector2 gaugePos = uiSystem.GetParryGaugeWorldPosition();
+
+            parryMechanics.TryStartParry(target, gaugePos);
         }
-        
+
+        public override void PostUpdate()
+        {
+            var uiSystem = ModContent.GetInstance<ParryUiSystem>();
+            Vector2 gaugePos = uiSystem.GetParryGaugeWorldPosition();
+
+            parryMechanics.Update(Player, gaugePos);
+        }
     }
 }
