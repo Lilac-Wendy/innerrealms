@@ -59,7 +59,7 @@ public void Draw(SpriteBatch spriteBatch)
         ? (player.GetAdjustedItemScale(player.HeldItem) - 1f) * 0.5f
         : 0f)) * ScaleMultiplier;
 // COLOR SETTINGS
-    Color color = new Color(0, 255, 255) * (ShouldBlacklistWeapon(player.HeldItem) ? 0.5f : 1f); //Transparent when Blacklisted
+    Color color = new Color(0, 255, 255) * (ShouldDenylistWeapon(player.HeldItem) ? 0.5f : 1f); //Transparent when Denylisted
 
     var oldSamplerState = spriteBatch.GraphicsDevice.SamplerStates[0];
     spriteBatch.GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
@@ -159,12 +159,12 @@ public void Draw(SpriteBatch spriteBatch)
             Player player = Main.LocalPlayer;
             float distanceToTarget = Vector2.Distance(player.Center, target.Center);
 
-            if (ShouldWhitelistWeapon(player.HeldItem))
+            if (ShouldAllowlistWeapon(player.HeldItem))
             {
                 // Special Weapons (yo-yo, flail, spear, etc.) 
                 distanceToTarget = MathHelper.Clamp(distanceToTarget, BaseRange, MaxPossibleRange);
             }
-            else if (ShouldBlacklistWeapon(player.HeldItem))
+            else if (ShouldDenylistWeapon(player.HeldItem))
             {
                 // Banned Weapons force the Base Range
                 distanceToTarget = BaseRange;
@@ -179,7 +179,7 @@ public void Draw(SpriteBatch spriteBatch)
             currentMaxRange = EmaAlpha * distanceToTarget + (1f - EmaAlpha) * currentMaxRange;
         }
 
-private bool ShouldWhitelistWeapon(Item item)
+private bool ShouldAllowlistWeapon(Item item)
 {
     if (item == null || item.IsAir)
         return false;
@@ -212,15 +212,12 @@ private bool ShouldWhitelistWeapon(Item item)
     else
     {
         // === Modded logic ===
-        // Permitir qualquer tipo de dano que não seja dos banidos explicitamente
         if (!item.DamageType.CountsAsClass(DamageClass.Ranged) &&
             !item.DamageType.CountsAsClass(DamageClass.Magic) &&
             !item.DamageType.CountsAsClass(DamageClass.Summon))
         {
             return true;
         }
-
-        // E ainda checa se o projétil tem um AI estilo que seria permitido
         if (item.shoot > ProjectileID.None &&
             ContentSamples.ProjectilesByType.TryGetValue(item.shoot, out var proj))
         {
@@ -240,11 +237,11 @@ private bool ShouldWhitelistWeapon(Item item)
     }
 }
 
-private bool ShouldBlacklistWeapon(Item item)
+private bool ShouldDenylistWeapon(Item item)
 {
     if (item == null || item.IsAir)
         return true;
-    if (ShouldWhitelistWeapon(item))
+    if (ShouldAllowlistWeapon(item))
         return false;
     bool isModded = item.ModItem != null;
     if (!isModded)

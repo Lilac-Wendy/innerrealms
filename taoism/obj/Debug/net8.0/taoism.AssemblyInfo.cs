@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("taoism")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+466f3ce4089f42b5976e96c20e38a0644c377c88")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+217cea6579aa6e8b34d84bfab8efa9cde922b5d4")]
 [assembly: System.Reflection.AssemblyProductAttribute("taoism")]
 [assembly: System.Reflection.AssemblyTitleAttribute("taoism")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
