@@ -70,26 +70,32 @@ namespace Taoism.Players
                 Reset();
             }
         }
+        private int GetModifiedDamage(Player player, Item weapon)
+        {
+            if (weapon == null)
+                return 0;
+
+            StatModifier mod = player.GetDamage(weapon.DamageType);
+            float final = mod.ApplyTo(weapon.damage);
+            return (int)final;
+        }
 
         private void ExecuteParryEffect(Player player)
         {
             if (trackedTarget == null || !trackedTarget.active)
                 return;
-
-            // Lança o inimigo para cima
             trackedTarget.velocity.Y = -10f;
             trackedTarget.netUpdate = true;
 
-            // Cálculo de dano: 50% da arma do jogador
-            int baseDamage = player.HeldItem?.damage ?? 0;
+            int baseDamage = GetModifiedDamage(player, player.HeldItem);
             if (baseDamage <= 0)
             {
                 Main.NewText("No valid weapon to parry with.", Color.Orange);
                 return;
             }
+
             int damage = baseDamage / 2;
 
-            // Aplica dano corretamente via SimpleStrikeNPC
             trackedTarget.SimpleStrikeNPC(
                 damage,
                 hitDirection: 0,
@@ -97,8 +103,6 @@ namespace Taoism.Players
                 knockBack: 0f,
                 damageType: player.HeldItem.DamageType
             );
-
-            // Feedback visual e sonoro
             CombatText.NewText(trackedTarget.Hitbox, Color.LightCyan, damage);
             SoundEngine.PlaySound(SoundID.Item71, trackedTarget.position);
             Main.NewText($"Parry executed! Dealt {damage} damage.", Color.Cyan);
