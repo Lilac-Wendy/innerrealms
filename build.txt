@@ -1,3 +1,0 @@
-displayName = Taoism: Inner Realms
-author = Lilac_Wendy
-version = 0.1
