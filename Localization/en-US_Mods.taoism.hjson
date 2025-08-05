@@ -16,3 +16,10 @@ Projectiles: {
 	ParryGaugeDisplay.DisplayName: Parry Gauge Display
 	ParryGaugeController.DisplayName: Parry Gauge Controller
 }
+
+Buffs: {
+	StonedDebuff: {
+		DisplayName: Stoned Debuff
+		Description: Mods.taoism.Buffs.StonedDebuff.Description
+	}
+}
