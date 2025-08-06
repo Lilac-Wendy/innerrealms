@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using taoism.Projectiles;
@@ -14,7 +13,7 @@ namespace Taoism.Players;
 public class ParryMechanics : ModPlayer
 {
     private const int ParryDurationTicks = 40;
-    public const float DefaultAllowedRadius = 40f;
+    private const float DefaultAllowedRadius = 40f;
     private const float StaggerHealthThreshold = 0.2f;
 
     private int parryTimer;
@@ -26,13 +25,11 @@ public class ParryMechanics : ModPlayer
     private NPC boundTarget = null;
     private int boundHand = -1;
     private bool hasFreeParry = false;
+    private uint lastHitTime = 0; 
 
     private ParryGaugeRenderer GetGaugeRenderer()
     {
-        // Acessa o sistema UI primeiro
         var uiSystem = ModContent.GetInstance<ParryUiSystem>();
-    
-        // Usa reflection para acessar o campo privado renderer
         if (uiSystem != null)
         {
             var field = typeof(ParryUiSystem).GetField("renderer", 
@@ -113,60 +110,115 @@ public class ParryMechanics : ModPlayer
         }
     }
 
-    private void ExecuteElementalEffect(Player player, float currentDistance, float maxDistance)
+    private int ApplyPostureDamage(int baseDamage, float distanceRatio)
     {
         var gauge = GetGaugeRenderer();
-        if (gauge == null || trackedTarget == null || !trackedTarget.active)
-            return;
-
-        // Correção: Acessar ShouldDenylistWeapon através da instância gauge
-        bool isValidWeapon = !gauge.ShouldDenylistWeapon(player.HeldItem);
+        if (gauge == null) return 0;
+        
+        if (trackedTarget.boss)
+        {
+            baseDamage /= 50; 
+        }
+        float postureMultiplier = 0.3f * (1.5f - distanceRatio);
+        float healthScaling = trackedTarget.lifeMax * 0.005f;
+        float sizeScaling = (trackedTarget.width * trackedTarget.height) * 0.001f;
+        float finalPostureMultiplier = postureMultiplier + healthScaling + sizeScaling;
     
-
-        gauge.AdvanceStance();
-
-        if (isValidWeapon)
-        {
-            float distanceRatio = MathHelper.Clamp(currentDistance / maxDistance, 0f, 1f);
-            int baseDamage = GetModifiedDamage(player, player.HeldItem, distanceRatio);
-            int damage = baseDamage / 2;
-        
-            switch (gauge.CurrentStance)
-            {
-                case ParryGaugeRenderer.ElementalStance.Water:
-                    ExecuteWaterUppercut(player, damage);
-                    break;
-                case ParryGaugeRenderer.ElementalStance.Wood:
-                    ExecuteWoodenJab(player, damage);
-                    break;
-                case ParryGaugeRenderer.ElementalStance.Fire:
-                    ExecuteFieryLunge(player, damage);
-                    break;
-                case ParryGaugeRenderer.ElementalStance.Earth:
-                    ExecuteEarthenSweep(player, damage);
-                    break;
-                case ParryGaugeRenderer.ElementalStance.Iron:
-                    ExecuteIronSurge(player, damage);
-                    break;
-            }
-        
-            comboCount++;
-            Main.NewText($"Combo: {comboCount} hits", Color.Gold);
-            Dust.NewDustPerfect(player.Center, DustID.GemTopaz, Vector2.Zero, 150, Color.White, 0.8f);
-        }
-        else
-        {
-            Main.NewText("Postura avançada - Arma inválida para parry", Color.Orange);
-            Dust.NewDustPerfect(player.Center, DustID.Smoke, Vector2.Zero, 100, Color.Gray, 1.2f);
-            SoundEngine.PlaySound(SoundID.Item10 with { Pitch = -0.5f }, player.Center);
-            comboCount = 0;
-        }
+        float sizeFactor = (trackedTarget.width * trackedTarget.height) / 100f;
+        float healthFactor = (trackedTarget.lifeMax * 0.05f) / 1000f;
+        float maxMultiplier = sizeFactor + healthFactor;
+        maxMultiplier = MathHelper.Clamp(maxMultiplier, 1.0f, float.MaxValue);
+        finalPostureMultiplier = MathHelper.Clamp(finalPostureMultiplier, 1.0f, maxMultiplier);
+        int postureDamage = (int)(baseDamage * finalPostureMultiplier);
+        CombatText.NewText(trackedTarget.Hitbox, GetStanceColor(gauge.CurrentStance), $"{postureDamage}!", dramatic: true);
+        Main.NewText($"Posture Damage Applied: {postureDamage}", Color.LightYellow);
+        return postureDamage;
     }
+private void ExecuteElementalEffect(Player player, float currentDistance, float maxDistance)
+{
+    if (Main.GameUpdateCount - lastHitTime > 180)
+    {
+        comboCount = 0;
+    }
+
+    var gauge = GetGaugeRenderer();
+    if (gauge == null || trackedTarget == null || !trackedTarget.active)
+    {
+        comboCount = 0;
+        return;
+    }
+    
+    bool isValidWeapon = !gauge.ShouldDenylistWeapon(player.HeldItem);
+
+    gauge.AdvanceStance();
+
+    if (isValidWeapon)
+    {
+        float distanceRatio = MathHelper.Clamp(currentDistance / maxDistance, 0f, 1f);
+        int baseDamage = GetModifiedDamage(player, player.HeldItem, distanceRatio);
+        
+        int postureDamage = ApplyPostureDamage(baseDamage, distanceRatio);
+        
+        float comboDamageMultiplier = 1f + ((float)comboCount * (postureDamage * 0.1f) / baseDamage);
+    
+        int finalDamage = (int)(baseDamage * comboDamageMultiplier);
+        int damage = finalDamage / 2;
+
+        switch (gauge.CurrentStance)
+        {
+            case ParryGaugeRenderer.ElementalStance.Water:
+                ExecuteWaterUppercut(player, damage);
+                break;
+            case ParryGaugeRenderer.ElementalStance.Wood:
+                ExecuteWoodenJab(player, damage);
+                break;
+            case ParryGaugeRenderer.ElementalStance.Fire:
+                ExecuteFieryLunge(player, damage);
+                break;
+            case ParryGaugeRenderer.ElementalStance.Earth:
+                ExecuteEarthenSweep(player, damage);
+                break;
+            case ParryGaugeRenderer.ElementalStance.Iron:
+                ExecuteIronSurge(player, damage);
+                break;
+        }
+        
+        comboCount++;
+
+        lastHitTime = Main.GameUpdateCount;
+        CombatText.NewText(player.Hitbox, Color.Gold, $"Combo: {comboCount}!", dramatic: true);
+
+        Dust.NewDustPerfect(player.Center, DustID.GemTopaz, Vector2.Zero, 150, Color.White, 0.8f);
+    }
+    else
+    {
+        Main.NewText("Postura avançada - Arma inválida para parry", Color.Orange);
+        Dust.NewDustPerfect(player.Center, DustID.Smoke, Vector2.Zero, 100, Color.Gray, 1.2f);
+        SoundEngine.PlaySound(SoundID.Item10 with { Pitch = -0.5f }, player.Center);
+        // Reseta o combo se a arma for inválida.
+        comboCount = 0;
+    }
+}
 
 
     private void ExecuteWaterUppercut(Player player, int damage)
     {
-        trackedTarget.velocity.Y = -30f;
+        int knockbackDirection = -1;
+        float launchStrength = 30f;
+        if (trackedTarget.knockBackResist <= 0f)
+        {
+            trackedTarget.velocity.Y = -launchStrength;
+        }
+        else
+        {
+            var hitInfo = new NPC.HitInfo()
+            {
+                Damage = damage,
+                Knockback = launchStrength, 
+                HitDirection = knockbackDirection
+            };
+            trackedTarget.StrikeNPC(hitInfo);
+        }
         if (Main.netMode != NetmodeID.SinglePlayer)
             trackedTarget.netUpdate = true;
 
@@ -182,7 +234,21 @@ public class ParryMechanics : ModPlayer
     {
         Vector2 direction = trackedTarget.Center - player.Center;
         direction.Normalize();
-        trackedTarget.velocity += direction * 8f;
+
+        if (trackedTarget.knockBackResist <= 0f)
+        {
+            trackedTarget.velocity += direction * 10f;
+        }
+        else
+        {
+            var hitInfo = new NPC.HitInfo()
+            {
+                Damage = damage, 
+                Knockback = 10f,  
+                HitDirection = player.direction 
+            };
+            trackedTarget.StrikeNPC(hitInfo);
+        }
 
         player.AddBuff(BuffID.WeaponImbueIchor, 300);
         damage = (int)(damage * 1.3f);
@@ -193,13 +259,26 @@ public class ParryMechanics : ModPlayer
 
     private void ExecuteFieryLunge(Player player, int damage)
     {
-        player.velocity.X = player.direction * 10f;
+        Vector2 directionToTarget = trackedTarget.Center - player.Center;
+        directionToTarget.Normalize();
+        float dashSpeed = 10f;
+        player.velocity = directionToTarget * dashSpeed;
+        int dashDuration = 25;
         player.immune = true;
-        player.immuneTime = 15;
+        player.immuneTime = dashDuration;
+        int projectileType = ProjectileID.MolotovFire2;
 
-        boundTarget = trackedTarget;
-        boundHand = Main.rand.Next(2);
-
+        Projectile.NewProjectile(player.GetSource_FromThis(), player.Center, Vector2.Zero, projectileType, 
+            (int)(damage * 0.5f), 0f, player.whoAmI, 0, dashDuration);
+        
+        for (int i = 0; i < 8; i++) 
+        {
+            Dust dust = Dust.NewDustDirect(player.position, player.width, player.height, DustID.IchorTorch, 0f, 0f, 100, default, 2f);
+            dust.noGravity = true; 
+            dust.velocity *= 2f;
+        }
+        player.AddBuff(BuffID.WeaponImbueIchor, 300);
+        damage = (int)(damage * 1.3f); 
         ApplyDamageEffects(player, damage, Color.OrangeRed);
         Main.NewText($"Fiery Lunge! Target hand bound ({boundHand})", Color.OrangeRed);
     }
@@ -281,49 +360,38 @@ private void ExecuteIronSurge(Player player, int damage)
     Vector2 dashDir = new Vector2(player.direction, 0f);
     trackedTarget.velocity = dashDir * dashSpeed;
     trackedTarget.netUpdate = true;
-    
-    // --- Lógica de condução elétrica ---
 
-    // A partir do alvo principal, vamos iniciar a cadeia de condução
-    // Usamos um Set para garantir que cada NPC seja atingido apenas uma vez na cadeia
+    // Chain Attack
     HashSet<int> hitNpcs = new HashSet<int>();
-    
-    // Inicia a cadeia de dano no alvo principal
     ApplyChainDamage(player, trackedTarget, damage, hitNpcs, 1);
-    
     Main.NewText(
         "Iron Surge! Electrified target surges through enemies!",
         Color.Yellow
     );
-    
     ApplyDamageEffects(player, damage, Color.Yellow);
     SoundEngine.PlaySound(
         SoundID.Item93 with { Pitch = -0.3f },
         trackedTarget.Center
     );
-    
-    // Efeito visual no alvo principal
+    // VFX
     for (int i = 0; i < 10; i++)
     {
         Dust.NewDust(trackedTarget.position, trackedTarget.width, trackedTarget.height, 
                     DustID.Electric, 0f, 0f, 100, default, 2f);
     }
 }
-
-// Nova função para aplicar o dano em cadeia e propagar o efeito
 private void ApplyChainDamage(Player player, NPC currentTarget, int damage, HashSet<int> hitNpcs, int chainCount)
 {
-    // Adiciona o alvo atual à lista de inimigos já atingidos para evitar loops infinitos
+    float distanceRatio = Vector2.Distance(player.Center, currentTarget.Center) / 1000f;
+    int postureDamage = ApplyPostureDamage(damage, distanceRatio);  
     if (hitNpcs.Contains(currentTarget.whoAmI))
     {
         return;
     }
     hitNpcs.Add(currentTarget.whoAmI);
     
-    // Aplica o dano ao alvo atual
-    int chainDamage = (int)(damage * (1.0f - (chainCount * 0.1f))); // Redução de dano por cada salto
-    if (chainDamage <= 0) chainDamage = 1; // Garante que o dano não seja zero
-
+    int chainDamage = (int)(damage * (1.0f - (chainCount * 0.1f) * postureDamage)); 
+    if (chainDamage <= 0) chainDamage = 2 * postureDamage; 
     var hitInfo = new NPC.HitInfo()
     {
         Damage = chainDamage,
@@ -332,33 +400,28 @@ private void ApplyChainDamage(Player player, NPC currentTarget, int damage, Hash
     };
     currentTarget.StrikeNPC(hitInfo);
     
-    // Aplica o buff elétrico com duração progressiva
     int baseDuration = 180;
     int duration = baseDuration + (chainCount * 30);
     currentTarget.AddBuff(BuffID.Electrified, duration);
 
-    // Efeitos visuais
+    // VFX
     CombatText.NewText(currentTarget.Hitbox, Color.Yellow, chainDamage.ToString());
     Dust.NewDust(currentTarget.position, currentTarget.width, currentTarget.height, DustID.Electric, 0f, 0f, 0, default, 1.5f);
-
-    // --- Lógica de propagação (70% de chance) ---
-    // A cada salto, a chance pode diminuir para balancear. Ex: 70%, 60%, 50%...
-    // Neste exemplo, a chance é fixa em 70%
+    
     if (Main.rand.NextFloat() < 0.70f)
     {
-        float spreadRadius = 150f; // Raio para encontrar o próximo alvo
-
-        // Procura por inimigos próximos
+        float spreadRadius = 150f; 
+        
         foreach (NPC npc in Main.npc)
         {
             if (npc.active && !npc.friendly && !hitNpcs.Contains(npc.whoAmI))
             {
                 if (Vector2.Distance(npc.Center, currentTarget.Center) < spreadRadius)
                 {
-                    // Propaga o efeito para o novo alvo
+
                     ApplyChainDamage(player, npc, damage, hitNpcs, chainCount + 1);
-                    // Apenas um alvo por vez para o próximo salto
-                    break; 
+                    //  Single Target per Chain Jump -> Disabled
+                    // break; 
                 }
             }
         }
@@ -390,22 +453,7 @@ private void ApplyChainDamage(Player player, NPC currentTarget, int damage, Hash
         SoundEngine.PlaySound(SoundID.Item71 with { Pitch = 0.1f }, trackedTarget.position);
         Dust.NewDust(trackedTarget.position, trackedTarget.width, trackedTarget.height, DustID.BlueTorch);
     }
-
-    private void ApplyPostureDamage(int baseDamage, float distanceRatio)
-    {
-        var gauge = GetGaugeRenderer();
-        if (gauge == null) return;
-
-        float postureMultiplier = 0.3f * (1.5f - distanceRatio);
-        int postureDamage = (int)(baseDamage * postureMultiplier);
-
-        CombatText.NewText(trackedTarget.Hitbox, GetStanceColor(gauge.CurrentStance), $"{postureDamage}!",
-            dramatic: true);
-    }
-        
-        
-
-
+    
     private void StaggerEnemy(Player player, int baseDamage)
     {
         if (!trackedTarget.active || trackedTarget.life <= 0)
@@ -422,7 +470,6 @@ private void ApplyChainDamage(Player player, NPC currentTarget, int damage, Hash
             knockBack: 3f,
             damageType: player.HeldItem.DamageType
         );
-
         CombatText.NewText(trackedTarget.Hitbox, Color.Gold, "STAGGERED!", dramatic: true);
         SoundEngine.PlaySound(SoundID.Item89, trackedTarget.position);
         Main.NewText("Finishing blow!", Color.Gold);
