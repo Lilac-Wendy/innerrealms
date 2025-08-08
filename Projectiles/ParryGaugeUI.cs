@@ -1,22 +1,25 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using ReLogic.Content;
+using Taoism.Players;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
-
 namespace taoism.Projectiles;
 
 public class ParryGaugeRenderer
 {
+    public int EarthFrameIndex { get; set; } = 0-1;
     private static Asset<Texture2D> heavenTexture;
     private static Asset<Texture2D> earthTexture;
     private static Asset<Texture2D> skillSlotTexture;
     private static Asset<Texture2D> finisherTexture;
     private static Asset<Texture2D> gaugeTexture;
+    private const int EarthFrameWidth = 64;
+    private int frameDecreaseTimer;
 
     private float currentMaxRange = 30f;
     private float visualRange = 30f;
@@ -30,9 +33,9 @@ public class ParryGaugeRenderer
     private const float EmaAlpha = 0.3f;
 
     private bool isCrimson = true;
-    private bool numpad5WasPressed = false;
+    private bool switchspritepressed = false;
 
-    private int stanceIndex = 0;
+    private int stanceIndex;
     private const int MaxStances = 5;
 
     public enum ElementalStance
@@ -47,7 +50,6 @@ public class ParryGaugeRenderer
     public ElementalStance CurrentStance => (ElementalStance)stanceIndex;
 
     public ParryGaugeRenderer()
-        
     {
         gaugeTexture = ModContent.Request<Texture2D>("Taoism/Assets/ParryGauge");
         heavenTexture = ModContent.Request<Texture2D>("Taoism/Assets/Heaven");
@@ -64,23 +66,46 @@ public class ParryGaugeRenderer
 
     public void Update()
     {
-        KeyboardState keyboard = Keyboard.GetState();
-        bool numpad5Pressed = keyboard.IsKeyDown(Keys.NumPad5);
-
-        if (numpad5Pressed && !numpad5WasPressed)
+        if (Taoism.taoism.EarthSpriteKey.JustPressed)
         {
             isCrimson = !isCrimson;
             string newPath = isCrimson ? "Taoism/Assets/Crimson" : "Taoism/Assets/Corruption";
             earthTexture = ModContent.Request<Texture2D>(newPath);
         }
 
-        numpad5WasPressed = numpad5Pressed;
+        // Adicione a nova lógica de diminuição do frame aqui
+        Player player = Main.LocalPlayer;
+        var parryPlayer = player.GetModPlayer<ParryMechanics>();
+
+        // Verifica se houve um tempo limite de combo
+        if (parryPlayer != null && Main.GameUpdateCount - parryPlayer.lastHitTime > ParryMechanics.ComboTimeoutTicks)
+        {
+            // Incrementa o temporizador
+            frameDecreaseTimer++;
+
+            // 1.5 segundos equivalem a 90 ticks (60 ticks por segundo em Terraria)
+            if (frameDecreaseTimer >= 90)
+            {
+                // Diminui o frame em 1, mas garante que não seja menor que 0
+                EarthFrameIndex = Math.Max(0, EarthFrameIndex - 1);
+            
+                // Reinicia o temporizador
+                frameDecreaseTimer = 0;
+            }
+        }
+    }
+    public void AdvanceEarthFrame()
+    {
+        int maxFrames = 30;
+        EarthFrameIndex = Math.Min(EarthFrameIndex + 1, maxFrames - 1);
     }
 
     public void Draw(SpriteBatch spriteBatch)
     {
         Player player = Main.LocalPlayer;
-        if (!player.active || player.dead || gaugeTexture?.Value == null)
+        var parryPlayer = player.GetModPlayer<ParryMechanics>();
+
+        if (!player.active || player.dead || gaugeTexture?.Value == null || parryPlayer == null)
             return;
 
         if (player.HeldItem != lastHeldItem)
@@ -100,11 +125,11 @@ public class ParryGaugeRenderer
             ? (player.GetAdjustedItemScale(player.HeldItem) - 1f) * 0.5f
             : 0f)) * ScaleMultiplier;
 
-        int frameIndex = stanceIndex;
-        Rectangle sourceRect = new Rectangle(0, frameIndex * 56, 64, 56);
+        int frameIndexStance = stanceIndex;
+        Rectangle sourceRect = new Rectangle(0, frameIndexStance * 56, 64, 56);
 
-        Color color = ShouldDenylistWeapon(player.HeldItem) ? 
-            Color.White * 0.5f : // Transparência para armas inválidas
+        Color color = ShouldDenylistWeapon(player.HeldItem) ?
+            Color.White * 0.5f :
             Color.White;
         bool facingLeft = direction.X < 0f;
 
@@ -145,24 +170,37 @@ public class ParryGaugeRenderer
                 0f
             );
         }
-
+        
         if (earthTexture?.Value != null)
         {
-            float yOffset = (sourceRect.Height / 2f + earthTexture.Height() / 2f) * (facingLeft ? -1 : 1);
+            int textureHeight = earthTexture.Height();
+            int maxFrames = 30; 
+            int frameHeight = textureHeight / maxFrames;
+            int frameIndex = (maxFrames - 1) - EarthFrameIndex;
+            frameIndex = Math.Max(0, frameIndex);
+
+            int sourceY = frameIndex * frameHeight;
+
+            Rectangle earthSourceRect = new Rectangle(0, sourceY, EarthFrameWidth, frameHeight);
+    
+            float yOffset = (sourceRect.Height / 2f + frameHeight / 2f) * (facingLeft ? -1 : 1);
             Vector2 offset = new Vector2(0, yOffset);
             spriteBatch.Draw(
                 earthTexture.Value,
                 RotateOffset(offset),
-                null,
+                earthSourceRect,
                 Color.White,
                 rotation,
-                new Vector2(earthTexture.Width() / 2f, earthTexture.Height() / 2f),
+                new Vector2(EarthFrameWidth / 2f, frameHeight / 2f),
                 scale,
                 verticalFlip,
                 0f
             );
         }
 
+
+
+        
         if (skillSlotTexture?.Value != null)
         {
             Vector2 offset = new Vector2(-sourceRect.Width / 2f - skillSlotTexture.Width() / 2f, 0);
@@ -216,101 +254,81 @@ public class ParryGaugeRenderer
         currentMaxRange = EmaAlpha * distanceToTarget + (1f - EmaAlpha) * currentMaxRange;
     }
 
-        
+
     private bool ShouldAllowlistWeapon(Item item)
     {
         if (item == null || item.IsAir)
             return false;
 
-        bool isModded = item.ModItem != null;
-
-        if (!isModded)
+        // 1. Permite armas corpo a corpo padrão e Whips
+        // Whips usam o DamageClass.SummonMeleeSpeed, que é uma exceção importante
+        // para a classe Summon.
+        if (item.DamageType.CountsAsClass(DamageClass.Melee) || item.DamageType == DamageClass.SummonMeleeSpeed)
         {
-            // === Vanilla logic ===
-            if (item.DamageType == DamageClass.SummonMeleeSpeed)
-                return true;
-
-            if (item.shoot > ProjectileID.None && 
-                ContentSamples.ProjectilesByType.TryGetValue(item.shoot, out var proj))
-            {
-                if (proj.aiStyle == ProjAIStyleID.Yoyo ||
-                    proj.aiStyle == ProjAIStyleID.Flail ||
-                    proj.aiStyle == ProjAIStyleID.Spear ||
-                    proj.aiStyle == ProjAIStyleID.Boomerang ||
-                    proj.aiStyle == ProjAIStyleID.Harpoon ||
-                    proj.aiStyle == ProjAIStyleID.Drill ||
-                    proj.aiStyle == ProjAIStyleID.ShortSword)
-                {
-                    return true;
-                }
-            }
-            return false;
+            return true;
         }
-        else
+
+        if (item.shoot > ProjectileID.None && ContentSamples.ProjectilesByType.TryGetValue(item.shoot, out var proj))
         {
-            // === Modded logic ===
-            if (!item.DamageType.CountsAsClass(DamageClass.Ranged) &&
-                !item.DamageType.CountsAsClass(DamageClass.Magic) &&
-                !item.DamageType.CountsAsClass(DamageClass.Summon))
+            if (proj.aiStyle == ProjAIStyleID.Yoyo ||
+                proj.aiStyle == ProjAIStyleID.Flail ||
+                proj.aiStyle == ProjAIStyleID.Spear ||
+                proj.aiStyle == ProjAIStyleID.Boomerang ||
+                proj.aiStyle == ProjAIStyleID.Harpoon ||
+                proj.aiStyle == ProjAIStyleID.Drill ||
+                proj.aiStyle == ProjAIStyleID.ShortSword)
             {
                 return true;
             }
-
-            if (item.shoot > ProjectileID.None && 
-                ContentSamples.ProjectilesByType.TryGetValue(item.shoot, out var proj))
-            {
-                if (proj.aiStyle == ProjAIStyleID.Yoyo ||
-                    proj.aiStyle == ProjAIStyleID.Flail ||
-                    proj.aiStyle == ProjAIStyleID.Spear ||
-                    proj.aiStyle == ProjAIStyleID.Boomerang ||
-                    proj.aiStyle == ProjAIStyleID.Harpoon ||
-                    proj.aiStyle == ProjAIStyleID.Drill ||
-                    proj.aiStyle == ProjAIStyleID.ShortSword)
-                {
-                    return true;
-                }
-            }
-            return false;
         }
+        if (item.ModItem != null)
+        {
+            return !item.DamageType.CountsAsClass(DamageClass.Ranged) &&
+                   !item.DamageType.CountsAsClass(DamageClass.Magic) &&
+                   !item.DamageType.CountsAsClass(DamageClass.Summon);
+        }
+
+
+        return false;
     }
 
     public bool ShouldDenylistWeapon(Item item)
     {
         if (item == null || item.IsAir)
             return true;
-        
         if (ShouldAllowlistWeapon(item))
             return false;
 
         bool isModded = item.ModItem != null;
-
         if (!isModded)
         {
-            // === Vanilla logic ===
-            return item.noMelee ||
+            return item.noMelee || 
                    item.DamageType == DamageClass.Ranged ||
                    item.DamageType == DamageClass.Magic ||
                    item.DamageType == DamageClass.Summon ||
                    (item.shoot > ProjectileID.None);
         }
-        else
+    
+
+        if (item.DamageType.CountsAsClass(DamageClass.Ranged) ||
+            item.DamageType.CountsAsClass(DamageClass.Magic) ||
+            item.DamageType.CountsAsClass(DamageClass.Summon))
         {
-            // === Modded logic ===
-            if (item.DamageType.CountsAsClass(DamageClass.Ranged) ||
-                item.DamageType.CountsAsClass(DamageClass.Magic) ||
-                item.DamageType.CountsAsClass(DamageClass.Summon))
-                return true;
-
-            if (item.noUseGraphic || item.noMelee)
-                return true;
-
-            if (item.shoot > ProjectileID.None &&
-                (!ContentSamples.ProjectilesByType.TryGetValue(item.shoot, out var proj) ||
-                 proj.aiStyle == 0 || proj.aiStyle == ProjAIStyleID.MagicMissile))
-                return true;
-
-            return false;
+            return true;
         }
+        
+        if (item.noUseGraphic || item.noMelee)
+        {
+            return true;
+        }
+
+        if (item.shoot > ProjectileID.None &&
+            (!ContentSamples.ProjectilesByType.TryGetValue(item.shoot, out var proj) ||
+             proj.aiStyle == 0 || proj.aiStyle == ProjAIStyleID.MagicMissile))
+        {
+            return true;
+        }
+        return false;
     }
 }
 
@@ -328,12 +346,6 @@ public class ParryUiSystem : ModSystem
         float visualRange = renderer.VisualRange;
         return player.Center + direction * visualRange;
     }
-
-    public static void AdvanceStanceUI()
-    {
-        renderer?.AdvanceStance();
-    }
-
     public override void Load()
     {
         if (Main.netMode != NetmodeID.Server)

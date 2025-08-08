@@ -3,7 +3,6 @@ using Taoism.Players;
 using taoism.Projectiles;
 using Terraria;
 using Terraria.ModLoader;
-
 namespace taoism.Players;
 
 public class ParryPlayer : ModPlayer
@@ -16,17 +15,27 @@ public class ParryPlayer : ModPlayer
             return;
 
         var uiSystem = ModContent.GetInstance<ParryUiSystem>();
+        if (uiSystem == null)
+            return;
+
         uiSystem.UpdateParryRange(target);
 
         Vector2 gaugePos = uiSystem.GetParryGaugeWorldPosition();
-
+        
         parryMechanics.TryStartParry(target, gaugePos);
     }
 
     public override void PostUpdate()
     {
+        if (Main.myPlayer != Player.whoAmI)
+            return;
+
         var uiSystem = ModContent.GetInstance<ParryUiSystem>();
+        if (uiSystem == null)
+            return;
+            
         Vector2 gaugePos = uiSystem.GetParryGaugeWorldPosition();
         parryMechanics.Update(Player, gaugePos);
+        parryMechanics.CheckParryInput(Player, gaugePos);
     }
 }

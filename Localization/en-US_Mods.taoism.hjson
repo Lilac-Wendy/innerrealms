@@ -1,25 +1,18 @@
 # This file will automatically update with entries for new content after a build and reload.
 
-Items: {
-	bonkpath: {
-		DisplayName: Bonkpath
-		Tooltip:
-			'''
-			Template of an item
-			Replacing this tooltip is duty 
-			It's snowing on Mt.Fuji
-			'''
-	}
-}
-
 Projectiles: {
 	ParryGaugeDisplay.DisplayName: Parry Gauge Display
 	ParryGaugeController.DisplayName: Parry Gauge Controller
 }
 
+Keybinds: {
+	"5 Elements Riposte.DisplayName": 5  Elements  Riposte
+	"Earth Sprite World Evil.DisplayName": Earth  Sprite  World  Evil
+}
+
 Buffs: {
-	StonedDebuff: {
-		DisplayName: Stoned Debuff
-		Description: Mods.taoism.Buffs.StonedDebuff.Description
+	ShatteredClockBuff: {
+		DisplayName: Shattered Clock
+		Description: A ticking clock ready to explode!
 	}
 }

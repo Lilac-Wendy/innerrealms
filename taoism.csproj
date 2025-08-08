@@ -11,7 +11,7 @@
 	<!-- References -->
 	<ItemGroup>
 	  <Folder Include="Common\" />
-	  <Folder Include="Content\Core\" />
+	  <Folder Include="Content\Items\Weapons\" />
 	</ItemGroup>
 
 </Project>
