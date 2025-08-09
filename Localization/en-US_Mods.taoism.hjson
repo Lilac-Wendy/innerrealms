@@ -11,8 +11,13 @@ Keybinds: {
 }
 
 Buffs: {
+	StaggeredBuff: {
+		DisplayName: Staggered
+		Description: You are staggered and cannot move or act!
+	}
+
 	ShatteredClockBuff: {
 		DisplayName: Shattered Clock
-		Description: A ticking clock ready to explode!
+		Description: Time is running out... when it does, it will shatter nearby enemies!
 	}
 }

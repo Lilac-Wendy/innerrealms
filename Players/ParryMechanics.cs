@@ -21,7 +21,7 @@ public class ParryMechanics : ModPlayer
     private NPC trackedTarget;
     private float lastParryDistance;
     
-    public const int ComboTimeoutTicks = 900; 
+    public const int ComboTimeoutTicks = 540; 
 
     private int comboCount;
     private NPC boundTarget = null;
@@ -479,9 +479,11 @@ public class ParryMechanics : ModPlayer
     {
         if (!trackedTarget.active || trackedTarget.life <= 0)
             return;
-
-        trackedTarget.velocity = Vector2.Zero;
-        trackedTarget.AddBuff(BuffID.Confused, 90);
+        if (trackedTarget.HasBuff(ModContent.BuffType<StaggeredBuff>()))
+        {
+            return;
+        }
+        trackedTarget.AddBuff(ModContent.BuffType<StaggeredBuff>(), 90);
 
         int critDamage = (int)(baseDamage * 1.8f);
         trackedTarget.SimpleStrikeNPC(
