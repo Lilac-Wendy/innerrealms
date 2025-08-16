@@ -29,7 +29,7 @@ namespace Taoism.Content.Buffs
 
         private void ExecuteStaggerEffect(NPC centerNpc)
         {
-            float staggerRadius = 150f;
+            float staggerRadius = 160f;
 
             foreach (NPC otherNpc in Main.npc)
             {
@@ -38,13 +38,10 @@ namespace Taoism.Content.Buffs
 
                 if (Vector2.Distance(centerNpc.Center, otherNpc.Center) < staggerRadius)
                 {
-                    // Verifica se o NPC já tem o StaggeredBuff
                     if (otherNpc.HasBuff(ModContent.BuffType<StaggeredBuff>()))
                     {
                         continue;
                     }
-
-                    // Aplica o buff de stagger para paralisar e confundir o inimigo.
                     otherNpc.AddBuff(ModContent.BuffType<StaggeredBuff>(), 90);
                     
                     int baseDamage = 5; 

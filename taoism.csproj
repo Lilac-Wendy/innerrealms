@@ -10,9 +10,12 @@
 
 	<!-- References -->
 	<ItemGroup>
+	  <Folder Include="Assets\Items\Accessories\" />
 	  <Folder Include="Common\" />
 	  <Folder Include="Content\Core\" />
+	  <Folder Include="Content\Items\Accessories\" />
 	  <Folder Include="Content\Items\Weapons\" />
+	  <Folder Include="Content\Projectiles\" />
 	</ItemGroup>
 
 </Project>

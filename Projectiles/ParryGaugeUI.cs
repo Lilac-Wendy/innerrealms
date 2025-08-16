@@ -28,7 +28,7 @@ public class ParryGaugeRenderer
 
     private const float BaseRange = 10f;
     private const float MaxPossibleRange = 500f;
-    private const float BaseScale = 0.6f;
+    private const float BaseScale = 0.7f;
     private const float ScaleMultiplier = 1f;
     private const float EmaAlpha = 0.3f;
 
@@ -197,8 +197,7 @@ public class ParryGaugeRenderer
                 0f
             );
         }
-
-
+        
 
         
         if (skillSlotTexture?.Value != null)
@@ -259,10 +258,6 @@ public class ParryGaugeRenderer
     {
         if (item == null || item.IsAir)
             return false;
-
-        // 1. Permite armas corpo a corpo padrão e Whips
-        // Whips usam o DamageClass.SummonMeleeSpeed, que é uma exceção importante
-        // para a classe Summon.
         if (item.DamageType.CountsAsClass(DamageClass.Melee) || item.DamageType == DamageClass.SummonMeleeSpeed)
         {
             return true;

@@ -1,4 +1,28 @@
-# This file will automatically update with entries for new content after a build and reload.
+ParryMechanics: {
+	Messages: {
+		ParryDisabled: Parry disabled - Cooldown started after taking damage
+		ParryOnCooldown: Parry on cooldown after taking damage
+		ParryCooldownEnded: Parry cooldown ended
+		ParryPossible: Parry is possible!
+		ParryFailed: Parry failed (initial misalignment)
+		ParrySucceeded: Parry succeeded despite misalignment!
+		ParryNotPossible: Parry not possible (misaligned)
+		ParryTimeout: You ran out of time for a Riposte!
+		PostureDamage: Posture Damage Applied: {0}
+		ComboCount: Combo: {0}!
+		InvalidWeapon: Stance advanced - Invalid weapon for parry
+		WaterUppercut: Water Uppercut! Target launched upward
+		WoodenJab: Wooden Jab! +Knockback & Ichor Buff
+		FieryLunge: Fiery Lunge!
+		FieryLungeShattered: Fiery Lunge! Shattered Clock already touched that target!
+		EarthenSweep: Earthen Sweep! Cone attack
+		EarthenSweepBonus: Earthen Sweep: Bonus damage of {0} from bound target!
+		IronSurge: Iron Surge! Electrified target surges through enemies!
+		NoWeapon: No valid weapon to parry with.
+		FinishingBlow: Finishing blow!
+		STAGGERED: STAGGERED!
+	}
+}
 
 Projectiles: {
 	ParryGaugeDisplay.DisplayName: Parry Gauge Display
@@ -6,8 +30,8 @@ Projectiles: {
 }
 
 Keybinds: {
-	"5 Elements Riposte.DisplayName": 5  Elements  Riposte
-	"Earth Sprite World Evil.DisplayName": Earth  Sprite  World  Evil
+	"5 Elements Riposte.DisplayName": 5 Elements Riposte
+	"Earth Sprite World Evil.DisplayName": Earth Sprite World Evil
 }
 
 Buffs: {

@@ -1,0 +1,47 @@
+ParryMechanics: {
+	Messages: {
+		ParryDisabled: Parry desativado - Recarga iniciada após tomar dano
+		ParryOnCooldown: Parry em recarga após tomar dano
+		ParryCooldownEnded: Recarga do parry terminou
+		ParryPossible: Parry possível!
+		ParryFailed: Parry falhou (desalinhamento inicial)
+		ParrySucceeded: Parry bem-sucedido apesar do desalinhamento!
+		ParryNotPossible: Parry não possível (desalinhado)
+		ParryTimeout: Tempo do parry esgotado
+		PostureDamage: Dano à Postura Aplicado: {0}
+		ComboCount: Combo: {0}!
+		InvalidWeapon: Postura avançada - Arma inválida para parry
+		WaterUppercut: Gancho d'Água! Alvo lançado para cima
+		WoodenJab: Golpe de Madeira! +Repulsão e Bônus de Ichor
+		FieryLunge: Investida de Fogo!
+		FieryLungeShattered: Investida de Fogo! Relógio Quebrado já afetou este alvo!
+		EarthenSweep: Varredura Terrestre! Ataque em cone
+		EarthenSweepBonus: Varredura Terrestre: Bônus de dano de {0} do alvo vinculado!
+		IronSurge: Onda de Ferro! Alvo eletrificado avança pelos inimigos!
+		NoWeapon: Nenhuma arma válida para parry
+		FinishingBlow: Golpe final!
+		STAGGERED: DESEQUILIBRADO!
+	}
+}
+
+Projectiles: {
+	ParryGaugeDisplay.DisplayName: Indicador de Parry
+	ParryGaugeController.DisplayName: Controlador de Parry
+}
+
+Keybinds: {
+	"5 Elements Riposte.DisplayName": Riposte dos 5 Elementos
+	"Earth Sprite World Evil.DisplayName": Sprite Terrestre (Mundo do Mal)
+}
+
+Buffs: {
+	StaggeredBuff: {
+		DisplayName: Desequilibrado
+		Description: Você está desequilibrado e não pode se mover ou agir!
+	}
+
+	ShatteredClockBuff: {
+		DisplayName: Relógio Quebrado
+		Description: O tempo está se esgotando... quando acabar, irá estilhaçar inimigos próximos!
+	}
+}
